@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/styles.css">
     <title>Register</title>
 </head>
+
 <body>
     <div class="containerRegister">
         <h2>Register</h2>
+        {% if error %}
+            <p style="color: red; text-align: center;">{{ error }}</p>
+        {% endif %}
+
         <form action="/register" method="post">
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
@@ -37,4 +43,5 @@
         <p>Already have an account? <a href="/login">Login here</a></p>
     </div>
 </body>
+
 </html>

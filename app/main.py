@@ -1,12 +1,11 @@
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import User
-from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from fastapi.responses import HTMLResponse,RedirectResponse
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,17 +25,22 @@ def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login", response_class=HTMLResponse)
-def login(username: str = Form(...), password: str = Form(...)):
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
     db: Session = SessionLocal()
     user = db.query(User).filter(User.username == username).first()
-    
-    if user and pwd_context.verify(password, user.password):
-        # User is authenticated
-        return RedirectResponse(url="/dashboard", status_code=303)  # Redirect to a dashboard or home page
+
+    if user is None:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Username does not exist"})
+
+    if not pwd_context.verify(password, user.password):
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Incorrect password"})
+
+    if user.role == "admin":
+        return RedirectResponse(url=f"/admin-dashboard?user={user.username}", status_code=303)
+    elif user.role == "customer":
+        return RedirectResponse(url=f"/customer-dashboard?user={user.username}", status_code=303)
     else:
-        return {"error": "Invalid username or password"}
-    # Implement login logic here
-    return RedirectResponse(url="/", status_code=303)
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid role"})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -44,33 +48,41 @@ def register_page(request: Request):
 
 @app.post("/register", response_class=HTMLResponse)
 def register(
+    request: Request,
     username: str = Form(...), 
     email: str = Form(...), 
     role: str = Form(...), 
     # gender: str = Form(...), 
     password: str = Form(...), 
     confirm_password: str = Form(...)
-    ):
+):
     if password != confirm_password:
-        return {"error": "Passwords do not match"}
+        return templates.TemplateResponse("register.html", {"request": request, "error": "Passwords do not match"})
     
     hashed_password = pwd_context.hash(password)
-    
     db: Session = SessionLocal()
+    existing_user = db.query(User).filter((User.username == username) | (User.email == email)).first()
+
+    if existing_user:
+        return templates.TemplateResponse("register.html", {"request": request, "error": "User or email already exists"})
+
     try:
         new_user = User(username=username, email=email, role=role, password=hashed_password)
         db.add(new_user)
-        db.commit()  
+        db.commit()
         db.refresh(new_user)
     except Exception as e:
-        db.rollback()  # Rollback in case of error
-        return {"error": str(e)}
+        db.rollback()
+        return templates.TemplateResponse("register.html", {"request": request, "error": str(e)})
     finally:
         db.close()
-    
+
     return RedirectResponse(url="/login", status_code=303)
 
-# dashboard
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+@app.get("/admin-dashboard", response_class=HTMLResponse)
+def admin_dashboard(request: Request, user: str):
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "username": user})
+
+@app.get("/customer-dashboard", response_class=HTMLResponse)
+def customer_dashboard(request: Request, user: str):
+    return templates.TemplateResponse("customer_dashboard.html", {"request": request, "username": user})
