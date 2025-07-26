@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
-from models import User
+from models import User, Product
 from passlib.context import CryptContext
 
 Base.metadata.create_all(bind=engine)
@@ -88,6 +88,25 @@ def register(
 @app.get("/admin-dashboard", response_class=HTMLResponse, name="admin_dashboard")
 def admin_dashboard(request: Request, user: str):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request, "username": user})
+
+# @app.get("/view-products", response_class=HTMLResponse)
+# def view_products(request: Request, user: str):
+#     db: Session = SessionLocal()
+#     products = db.query(Product).all()  # or filter/search as needed
+#     return templates.TemplateResponse("view_products.html", {
+#         "request": request,
+#         "username": user,
+#         "products": products,
+#         "search": ""
+#     })
+
+@app.get("/view-products", response_class=HTMLResponse)
+def view_products(request: Request, user: str):
+    return templates.TemplateResponse("view_products.html", {"request": request, "username": user})
+
+@app.get("/add-product", response_class=HTMLResponse)
+def add_product(request: Request, user: str):
+    return templates.TemplateResponse("add_product.html", {"request": request, "username": user})
 
 @app.get("/customer-dashboard", response_class=HTMLResponse)
 def customer_dashboard(request: Request, user: str):
