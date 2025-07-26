@@ -1,0 +1,67 @@
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div class="user-avatar">TS</div>
+        <div class="user-info">
+            <h4>Tanvi Shirsat</h4>
+            <p>Staff Member</p>
+        </div>
+    </div>
+
+    <ul class="sidebar-menu">
+        <!-- <div class="menu-title">Inventory</div> -->
+        <li class="menu-item" id="dashboardMenu">
+            <div>
+                <a href="{{ url_for('admin_dashboard') }}?user={{ username }}">
+            <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+            </a>
+            </div>
+        </li>
+        <!-- <li class="menu-item">
+            
+            <i class="fas fa-barcode"></i><span>Barcode Scanner</span>
+            
+        </li> -->
+        <li class="menu-item" id="viewProductsMenu">
+            {# <a href="{{ url_for('view_products') }}"> #}
+            <i class="fas fa-boxes"></i> <span>View Products</span>
+            </a>
+        </li>
+
+        <!-- <div class="menu-title">Upgrade</div> -->
+        <li class="menu-item" id="addProductMenu">
+            {# <a href="{{ url_for('add_product') }}"> #}
+            <i class="fas fa-plus-circle"></i> <span>Add Products</span>
+            </a>
+        </li>
+        <li class="menu-item" id="restockProducts">
+            {# <a href="{{ url_for('restock_product') }}"> #}
+            <i class="fas fa-plus-circle"></i> <span>Restock Products</span>
+            </a>
+        </li>
+
+        <!-- <div class="menu-title">Sales</div> -->
+        <li class="menu-item" id="saleProducts">
+            {# <a href="{{ url_for('sell_product') }}"> #}
+            <i class="fas fa-cash-register"></i> <span>Sale Products</span>
+            </a>
+        </li>
+        <li class="menu-item" id="salesHistoryMenu">
+            {# <a href="{{ url_for('sales_history') }}"> #}
+            <i class="fas fa-history"></i> <span>Sales History</span>
+            </a>
+        </li>
+        
+
+        <!-- <div class="menu-title">Reports</div>
+        <li class="menu-item">
+            
+            <i class="fas fa-chart-line"></i><span>Sales Reports</span>
+            
+        </li>
+        <li class="menu-item">
+            
+            <i class="fas fa-archive"></i><span>Inventory Reports</span>
+            
+        </li> -->
+    </ul>
+</aside>

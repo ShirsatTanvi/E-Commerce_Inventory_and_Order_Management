@@ -1,0 +1,90 @@
+/* Dashboard */
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-content {
+    display: flex;
+}
+
+.header-actions {
+    display: flex;
+}
+
+.quick-add-container {
+    margin-left: auto;
+}
+
+.button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: -20px;
+}
+
+.button:hover {
+    background-color: var(--primary-dark);
+}
+
+/* Dashboard Cards */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+    font-size: 1.2rem;
+    color: var(--gray-color);
+    margin-bottom: 0.5rem;
+}
+
+.card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-dark);
+}
+
+/* Activity Section */
+.activity-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.activity-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--gray-color);
+}
+
+.activity-list {
+    list-style: none;
+    padding: 0;
+}
+
+.activity-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+    color: #333;
+}

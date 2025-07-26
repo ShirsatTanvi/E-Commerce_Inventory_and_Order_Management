@@ -42,6 +42,12 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     else:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid role"})
 
+@app.post("/logout", name="logout")
+def logout(request: Request):
+    response = RedirectResponse(url="/", status_code=302)
+    # Optional: clear cookies/session
+    return response
+
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
@@ -79,7 +85,7 @@ def register(
 
     return RedirectResponse(url="/login", status_code=303)
 
-@app.get("/admin-dashboard", response_class=HTMLResponse)
+@app.get("/admin-dashboard", response_class=HTMLResponse, name="admin_dashboard")
 def admin_dashboard(request: Request, user: str):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request, "username": user})
 
