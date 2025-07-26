@@ -100,13 +100,70 @@ def admin_dashboard(request: Request, user: str):
 #         "search": ""
 #     })
 
+# @app.get("/view-products", response_class=HTMLResponse)
+# def view_products(request: Request, user: str):
+#     return templates.TemplateResponse("view_products.html", {"request": request, "username": user})
+
+
 @app.get("/view-products", response_class=HTMLResponse)
-def view_products(request: Request, user: str):
-    return templates.TemplateResponse("view_products.html", {"request": request, "username": user})
+def view_products(request: Request, user: str, search: str = ""):
+    db: Session = SessionLocal()
+    try:
+        if search:
+            products = db.query(Product).filter(Product.name.ilike(f"%{search}%")).all()
+        else:
+            products = db.query(Product).all()
+
+        return templates.TemplateResponse("view_products.html", {
+            "request": request,
+            "username": user,
+            "products": products,
+            "search": search
+        })
+    finally:
+        db.close()
+
 
 @app.get("/add-product", response_class=HTMLResponse)
 def add_product(request: Request, user: str):
     return templates.TemplateResponse("add_product.html", {"request": request, "username": user})
+
+@app.post("/add-product", response_class=HTMLResponse)
+def save_product(
+    request: Request,
+    user: str = Form(...),
+    productName: str = Form(...),
+    productDesc: str = Form(...),
+    quantity: int = Form(...),
+    price: float = Form(...)
+):
+    db: Session = SessionLocal()
+    try:
+        new_product = Product(
+            name=productName,
+            desc=productDesc,
+            quantity=quantity,
+            price=price
+        )
+        db.add(new_product)
+        db.commit()
+        db.refresh(new_product)
+        message = "Product added successfully!"
+        return templates.TemplateResponse("add_product.html", {
+            "request": request,
+            "username": user,
+            "success": message
+        })
+    except Exception as e:
+        db.rollback()
+        return templates.TemplateResponse("add_product.html", {
+            "request": request,
+            "username": user,
+            "error": "Error adding product: " + str(e)
+        })
+    finally:
+        db.close()
+
 
 @app.get("/customer-dashboard", response_class=HTMLResponse)
 def customer_dashboard(request: Request, user: str):
