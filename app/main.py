@@ -1,11 +1,13 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Depends, Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import User, Product
+import models
+from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
+from datetime import date
 
 Base.metadata.create_all(bind=engine)
 
@@ -15,6 +17,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Mount the static files directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
@@ -89,40 +98,45 @@ def register(
 def admin_dashboard(request: Request, user: str):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request, "username": user})
 
-# @app.get("/view-products", response_class=HTMLResponse)
-# def view_products(request: Request, user: str):
-#     db: Session = SessionLocal()
-#     products = db.query(Product).all()  # or filter/search as needed
-#     return templates.TemplateResponse("view_products.html", {
-#         "request": request,
-#         "username": user,
-#         "products": products,
-#         "search": ""
-#     })
+@app.get("/view-products")
+def view_products(request: Request, search: str = "", db: Session = Depends(get_db)):
+    if search:
+        products = db.query(models.Product).filter(models.Product.name.contains(search)).all()
+    else:
+        products = db.query(models.Product).all()
+    return templates.TemplateResponse("view_products.html", {
+        "request": request,
+        "products": products,
+        "search": search
+    })
 
-# @app.get("/view-products", response_class=HTMLResponse)
-# def view_products(request: Request, user: str):
-#     return templates.TemplateResponse("view_products.html", {"request": request, "username": user})
+@app.get("/edit-product/{product_id}")
+def edit_product_form(product_id: int, request: Request, db: Session = Depends(get_db)):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    return templates.TemplateResponse("edit_product.html", {
+        "request": request,
+        "product": product
+    })
+
+@app.post("/edit-product/{product_id}")
+def update_product(product_id: int, name: str = Form(...), desc: str = Form(...),
+                   quantity: int = Form(...), price: float = Form(...),
+                   db: Session = Depends(get_db)):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    product.name = name
+    product.desc = desc
+    product.quantity = quantity
+    product.price = price
+    db.commit()
+    return RedirectResponse("/view-products", status_code=303)
 
 
-@app.get("/view-products", response_class=HTMLResponse)
-def view_products(request: Request, user: str, search: str = ""):
-    db: Session = SessionLocal()
-    try:
-        if search:
-            products = db.query(Product).filter(Product.name.ilike(f"%{search}%")).all()
-        else:
-            products = db.query(Product).all()
-
-        return templates.TemplateResponse("view_products.html", {
-            "request": request,
-            "username": user,
-            "products": products,
-            "search": search
-        })
-    finally:
-        db.close()
-
+@app.post("/delete-product/{product_id}")
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    db.delete(product)
+    db.commit()
+    return RedirectResponse("/view-products", status_code=303)
 
 @app.get("/add-product", response_class=HTMLResponse)
 def add_product(request: Request, user: str):
@@ -163,7 +177,6 @@ def save_product(
         })
     finally:
         db.close()
-
 
 @app.get("/customer-dashboard", response_class=HTMLResponse)
 def customer_dashboard(request: Request, user: str):
