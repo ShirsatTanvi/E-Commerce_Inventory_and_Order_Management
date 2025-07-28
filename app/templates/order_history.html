@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Orders history{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Page Background */
+body {
+    background-color: #f5f7fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Centered Page Heading */
+h2 {
+    text-align: center;
+    font-size: 32px;
+    color: #2c3e50;
+    margin-bottom: 40px;
+}
+
+/* Order Box Styling */
+.order-box {
+    background-color: #ffffff;
+    border-left: 5px solid #007BFF;
+    border-radius: 10px;
+    padding: 20px 25px;
+    margin: 20px auto;
+    max-width: 700px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Order Details Paragraph */
+.order-box p {
+    font-size: 16px;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+/* Order Item List */
+.order-box ul {
+    list-style-type: disc;
+    padding-left: 25px;
+    margin-bottom: 15px;
+}
+
+.order-box li {
+    font-size: 15px;
+    color: #666;
+    padding: 3px 0;
+}
+
+/* Form for Status Update */
+.order-box form {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Dropdown Styling */
+.order-box select {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.order-box select:focus {
+    border-color: #007BFF;
+}
+
+/* Button Styling */
+.order-box button {
+    background-color: #28a745;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.order-box button:hover {
+    background-color: #218838;
+}
+
+/* Horizontal Line */
+hr {
+    border: 0;
+    border-top: 1px solid #e0e0e0;
+    margin: 30px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>Your Orders</h2>
+{% for order in orders %}
+<div class="order-box">
+    <p><strong>Order ID:</strong> {{ order.id }} | <strong>Status:</strong> {{ order.status }} | <strong>Date:</strong> {{ order.date }}</p>
+    <ul>
+        {% for item in order.items %}
+        <li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>
+        {% endfor %}
+    </ul>
+</div>
+<hr>
+{% endfor %}
+{% endblock %}
