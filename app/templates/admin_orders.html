@@ -79,13 +79,16 @@
 {% for order in orders %}
 <div class="order-box">
     <p><strong>Order ID:</strong> {{ order.id }} | <strong>User:</strong> {{ order.user.username }} |
-        <strong>Status:</strong> {{ order.status }}</p>
+        <strong>Status:</strong> {{ order.status }}
+    </p>
     <ul>
         {% for item in order.items %}
-        {#<li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>#}
+        <li>{{ item.product.subcategory }} ({{ item.product.brand }}) - Qty: {{ item.quantity }}</li>
         {% endfor %}
     </ul>
-    <form action="/update-order-status/{{ order.id }}" method="post">
+    <form action="/update-order-status/{{ order.id }}?user={{ username }}" method="post">
+        <!-- Hidden input to send the username -->
+        <input type="hidden" name="user" value="{{ username }}">
         <select name="status">
             <option {% if order.status=='Pending' %}selected{% endif %}>Pending</option>
             <option {% if order.status=='Shipped' %}selected{% endif %}>Shipped</option>

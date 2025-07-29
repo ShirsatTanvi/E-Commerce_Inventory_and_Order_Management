@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, Depends, Query
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, desc
 from sqlalchemy.orm import Session
@@ -9,6 +9,8 @@ import models
 from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
 from datetime import date
+from io import BytesIO
+from reportlab.pdfgen import canvas  # Optional for PDF
 
 Base.metadata.create_all(bind=engine)
 
@@ -144,7 +146,7 @@ def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
 
 
 @app.get("/view-products")
-def view_products(request: Request, search: str = "", user: str = Query(...), db: Session = Depends(get_db)):
+def view_products(request: Request, search: str = "", user: str = Query(...), message: str= "", db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     products = db.query(Product).filter(Product.desc.contains(search)).all() if search else db.query(Product).all()
     return templates.TemplateResponse("view_products.html", {
@@ -152,7 +154,8 @@ def view_products(request: Request, search: str = "", user: str = Query(...), db
         "products": products,
         "search": search,
         "username": context["username"],
-        "role": context["role"]
+        "role": context["role"],
+        "message": message
     })
 
 @app.get("/edit-product/{product_id}")
@@ -191,16 +194,59 @@ def update_product(
 #     db.commit()
 #     return RedirectResponse("/view-products", status_code=303)
 
+# @app.post("/delete-product/{product_id}")
+# def delete_product(
+#     product_id: int,
+#     user: str = Form(...),  # ✅ Get the user from the form
+#     db: Session = Depends(get_db)
+# ):
+#     product = db.query(models.Product).filter(models.Product.id == product_id).first()
+#     if product:
+#         db.delete(product)
+#         db.commit()
+#     return RedirectResponse(f"/view-products?user={user}", status_code=303)
+
 @app.post("/delete-product/{product_id}")
 def delete_product(
+    request: Request,   
     product_id: int,
-    user: str = Form(...),  # ✅ Get the user from the form
+    user: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if product:
-        db.delete(product)
-        db.commit()
+    product = db.query(Product).filter(Product.id == product_id ).first()
+    if not product:
+        return templates.TemplateResponse("message.html", {
+            "request": request,
+            "message": "Product not found."
+        })
+
+    # Get all related order items
+    order_items = db.query(OrderItem).filter(OrderItem.product_id == product_id).all()
+
+    # Check if any order linked to this product is not delivered
+    for item in order_items:
+        order = db.query(Order).filter(Order.id == item.order_id).first()
+        if order and order.status != "Delivered":
+            return RedirectResponse(
+            f"/view-products?user={user}&message=Cannot+delete:+Order+in+progress.",
+            status_code=303
+        )
+
+    # All linked orders are delivered, safe to delete order items
+    for item in order_items:
+        db.delete(item)
+
+        # Optional: Check if the order now has 0 items, then delete the order too
+        remaining_items = db.query(OrderItem).filter(OrderItem.order_id == item.order_id).count()
+        if remaining_items == 1:  # current item is the last one
+            order = db.query(Order).filter(Order.id == item.order_id).first()
+            if order:
+                db.delete(order)
+
+    # Finally, delete the product
+
+    db.delete(product)
+    db.commit()
     return RedirectResponse(f"/view-products?user={user}", status_code=303)
 
 
@@ -240,18 +286,110 @@ def save_product(
     finally:
         db.close()
 
+
+# @app.get("/admin-orders", response_class=HTMLResponse)
+# def view_all_orders(request: Request, user: str, db: Session = Depends(get_db)):
+#     context = get_user_context(user, db)
+#     orders = db.query(Order).all()
+#     return templates.TemplateResponse("admin_orders.html", {"request": request, "orders": orders, "username": context["username"], "role": context["role"]})
+
+@app.get("/restock-products", response_class=HTMLResponse)
+def restock_products_page(request: Request, user: str = Query(...), db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    products = db.query(Product).all()
+    # products = db.query(Product).filter(Product.is_active == 1).all()
+    return templates.TemplateResponse("restock_products.html", {
+        "request": request,
+        "username": context["username"],
+        "role": context["role"],
+        "products": products
+    })
+
+@app.post("/restock-products", response_class=HTMLResponse)
+def restock_product(
+    request: Request,
+    user: str = Form(...),
+    product_id: int = Form(...),
+    added_quantity: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    context = get_user_context(user, db)
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if product:
+        product.quantity += added_quantity
+        db.commit()
+        message = f"Successfully restocked {added_quantity} units of '{product.subcategory}'"
+    else:
+        message = "Product not found"
+
+    products = db.query(Product).all()
+    # products = db.query(Product).filter(Product.is_active == 1).all()
+    return templates.TemplateResponse("restock_products.html", {
+        "request": request,
+        "username": context["username"],
+        "role": context["role"],
+        "products": products,
+        "message": message
+    })
+
 @app.get("/admin-orders", response_class=HTMLResponse)
 def view_all_orders(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    orders = db.query(Order).all()
-    return templates.TemplateResponse("admin_orders.html", {"request": request, "orders": orders, "username": context["username"], "role": context["role"]})
+    orders = db.query(Order).filter(Order.status != "Delivered").all()
+    return templates.TemplateResponse("admin_orders.html", {
+        "request": request,
+        "orders": orders,
+        "username": context["username"],
+        "role": context["role"]
+    })
+
+@app.get("/sales-history", response_class=HTMLResponse)
+def sales_history(request: Request, user: str, db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    orders = db.query(Order).filter(Order.status == "Delivered").all()
+    return templates.TemplateResponse("sales_history.html", {
+        "request": request,
+        "orders": orders,
+        "username": context["username"],
+        "role": context["role"]
+    })
+
+
+# @app.get("/admin-orders", response_class=HTMLResponse)
+# def view_all_orders(request: Request, db: Session = Depends(get_db)):
+#     orders = db.query(Order).filter(Order.status != "Delivered").all()
+#     return templates.TemplateResponse("admin_order.html", {"request": request, "orders": orders})
+
+# @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
+# def update_order_status(order_id: int, status: str = Form(...), db: Session = Depends(get_db)):
+#     order = db.query(Order).filter(Order.id == order_id).first()
+#     order.status = status
+#     db.commit()
+#     return RedirectResponse("/admin-orders?user=admin", status_code=303)
+
+# @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
+# def update_order_status(order_id: int, status: str = Form(...), db: Session = Depends(get_db)):
+#     order = db.query(Order).filter(Order.id == order_id).first()
+#     if not order:
+#         return {"error": "Order not found"}
+#     order.status = status
+#     db.commit()
+    
+#     return RedirectResponse(url="/admin-orders", status_code=303)
 
 @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
-def update_order_status(order_id: int, status: str = Form(...), db: Session = Depends(get_db)):
+def update_order_status(
+    order_id: int,
+    status: str = Form(...),
+    user: str = Form(...),  # Accept user from the form
+    db: Session = Depends(get_db)
+):
     order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        return {"error": "Order not found"}
     order.status = status
     db.commit()
-    return RedirectResponse("/admin-orders?user=admin", status_code=303)
+    return RedirectResponse(f"/admin-orders?user={user}", status_code=303)
 
 # @app.get("/customer-dashboard", response_class=HTMLResponse)
 # def customer_dashboard(request: Request, user: str, db: Session = Depends(get_db)):
@@ -262,6 +400,7 @@ def update_order_status(order_id: int, status: str = Form(...), db: Session = De
 def browse_products(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     products = db.query(Product).all()
+    # products = db.query(Product).filter(Product.is_active == 1).all()
     return templates.TemplateResponse("browse_products.html", {"request": request, "products": products, "username": context["username"], "role": context["role"]})
 
 @app.post("/place-order", response_class=HTMLResponse)
@@ -318,11 +457,20 @@ def my_cart(request: Request, user: str = Query(...), db: Session = Depends(get_
     user_obj = db.query(User).filter(User.username == user).first()
     cart_items = db.query(CartItem).filter(CartItem.user_id == user_obj.id).all()
 
+    subtotal = sum(item.quantity * item.product.price for item in cart_items)
+    gst = round(subtotal * 0.18, 2)
+    shipping = 50.0 if cart_items else 0.0
+    total_amount = round(subtotal + gst + shipping, 2)
+
     return templates.TemplateResponse("my_cart.html", {
         "request": request,
         "cart_items": cart_items,
         "username": context["username"],
-        "role": context["role"]
+        "role": context["role"],
+        "subtotal": subtotal,
+        "gst": gst,
+        "shipping": shipping,
+        "total_amount": total_amount
     })
 
 @app.post("/remove-from-cart/{cart_id}")
@@ -333,6 +481,87 @@ def remove_from_cart(cart_id: int, user: str = Form(...), db: Session = Depends(
         db.commit()
     return RedirectResponse(f"/my-cart?user={user}", status_code=303)
 
+@app.post("/checkout", response_class=HTMLResponse)
+def checkout(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    return templates.TemplateResponse("message.html", {
+        "request": request,
+        "message": "Proceeding to checkout... (To be implemented)",
+        "redirect_url": f"/my-cart?user={user}"
+    })
+
+@app.post("/bill", response_class=HTMLResponse)
+def show_bill(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    user_obj = db.query(User).filter(User.username == user).first()
+    cart_items = db.query(CartItem).filter(CartItem.user_id == user_obj.id).all()
+
+    subtotal = sum(item.quantity * item.product.price for item in cart_items)
+    gst = round(subtotal * 0.18, 2)
+    shipping = 50.0 if cart_items else 0.0
+    total_amount = round(subtotal + gst + shipping, 2)
+
+    return templates.TemplateResponse("bill.html", {
+        "request": request,
+        "username": context["username"],
+        "role": context["role"],
+        "cart_items": cart_items,
+        "subtotal": subtotal,
+        "gst": gst,
+        "shipping": shipping,
+        "total_amount": total_amount
+    })
+
+@app.post("/confirm-buy", response_class=HTMLResponse)
+def confirm_buy(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
+    # Get user
+    user_obj = db.query(User).filter(User.username == user).first()
+    if not user_obj:
+        return templates.TemplateResponse("message.html", {
+            "request": request,
+            "message": "User not found.",
+            "redirect_url": "/login"
+        })
+
+    # Get cart items
+    cart_items = db.query(CartItem).filter(CartItem.user_id == user_obj.id).all()
+    if not cart_items:
+        return templates.TemplateResponse("message.html", {
+            "request": request,
+            "message": "Your cart is empty.",
+            "redirect_url": f"/my-cart?user={user}"
+        })
+
+    # Create order
+    new_order = Order(user_id=user_obj.id)
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+    # Move items from cart to order_items
+    for item in cart_items:
+        order_item = OrderItem(order_id=new_order.id, product_id=item.product.id, quantity=item.quantity)
+        db.add(order_item)
+        item.product.quantity -= item.quantity  # reduce stock
+
+    # Clear cart
+    for item in cart_items:
+        db.delete(item)
+
+    db.commit()
+
+    return RedirectResponse(f"/my-cart?user={user}", status_code=303)
+
+@app.get("/download-bill")
+def download_bill(user: str = Query(...), db: Session = Depends(get_db)):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer)
+    p.drawString(100, 800, f"Bill for user: {user}")
+    # You can loop and draw items too
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": "attachment; filename=bill.pdf"})
 
 @app.get("/order-history", response_class=HTMLResponse)
 def order_history(request: Request, user: str = Query(...), db: Session = Depends(get_db)):

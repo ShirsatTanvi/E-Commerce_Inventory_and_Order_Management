@@ -96,6 +96,8 @@
 {% endblock %}
 
 {% block content %}
+
+
 <div class="search-bar">
     <form action="/view-products" method="get" style="width: 100%;">
         <i class="fas fa-search"></i>
@@ -103,6 +105,7 @@
         <input type="hidden" name="user" value="{{ username }}">
     </form>
 </div>
+
 
 <br>
 
@@ -132,15 +135,12 @@
                     <input type="hidden" name="user" value="{{ username }}">
                     <button type="submit">Edit</button>
                 </form>
-                <!-- <form action="/delete-product/{{ product.id }}" method="post">
-                    <button type="submit" class="delete">Delete</button>
-                </form> -->
-
                 <form action="/delete-product/{{ product.id }}" method="post">
                     <input type="hidden" name="user" value="{{ username }}">
                     <button type="submit" class="delete">Delete</button>
                 </form>
             </div>
+
             {% endif %}
         </div>
         {% else %}
@@ -148,4 +148,15 @@
         {% endfor %}
     </div>
 </section>
+
+{% if message %}
+<script>
+    alert("{{ message }}");
+    // Optional: remove the message from URL after showing alert
+    // if (window.history.replaceState) {
+    //     const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?user={{ username }}";
+    //     window.history.replaceState({}, document.title, cleanUrl);
+    // }
+</script>
+{% endif %}
 {% endblock %}
