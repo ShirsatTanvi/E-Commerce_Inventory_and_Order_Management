@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, desc
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
-from models import User, Product, Order, OrderItem
+from models import User, Product, Order, OrderItem, CartItem
 import models
 from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
@@ -291,6 +291,48 @@ def place_order(request: Request, user: str = Form(...), product_id: int = Form(
     db.commit()
 
     return templates.TemplateResponse("browse_products.html", {"request": request, "username": context["username"], "role": context["role"], "success": "Order placed successfully!"})
+
+@app.post("/add-to-cart", response_class=HTMLResponse)
+def add_to_cart(user: str = Form(...), product_id: int = Form(...), quantity: int = Form(...), db: Session = Depends(get_db)):
+    user_obj = db.query(User).filter(User.username == user).first()
+    product = db.query(Product).filter(Product.id == product_id).first()
+
+    if not user_obj or not product:
+        return RedirectResponse(f"/browse-products?user={user}", status_code=303)
+
+    existing_item = db.query(CartItem).filter(CartItem.user_id == user_obj.id, CartItem.product_id == product.id).first()
+
+    if existing_item:
+        existing_item.quantity += quantity
+    else:
+        new_cart_item = CartItem(user_id=user_obj.id, product_id=product.id, quantity=quantity)
+        db.add(new_cart_item)
+
+    db.commit()
+    return RedirectResponse(f"/browse-products?user={user}", status_code=303)
+
+
+@app.get("/my-cart", response_class=HTMLResponse)
+def my_cart(request: Request, user: str = Query(...), db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    user_obj = db.query(User).filter(User.username == user).first()
+    cart_items = db.query(CartItem).filter(CartItem.user_id == user_obj.id).all()
+
+    return templates.TemplateResponse("my_cart.html", {
+        "request": request,
+        "cart_items": cart_items,
+        "username": context["username"],
+        "role": context["role"]
+    })
+
+@app.post("/remove-from-cart/{cart_id}")
+def remove_from_cart(cart_id: int, user: str = Form(...), db: Session = Depends(get_db)):
+    item = db.query(CartItem).filter(CartItem.id == cart_id).first()
+    if item:
+        db.delete(item)
+        db.commit()
+    return RedirectResponse(f"/my-cart?user={user}", status_code=303)
+
 
 @app.get("/order-history", response_class=HTMLResponse)
 def order_history(request: Request, user: str = Query(...), db: Session = Depends(get_db)):

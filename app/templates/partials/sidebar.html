@@ -1,5 +1,5 @@
 <aside class="sidebar">
-    <div class="sidebar-header">        
+    <div class="sidebar-header">
         <div class="user-avatar">{{ username[0]|upper }}</div>
         <div class="user-info">
             <h4>{{ username }}</h4>
@@ -13,7 +13,7 @@
                 <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
             </a>
         </li>
-        
+
         <li class="menu-item {% if request.url.path.startswith('/view-products') %}active{% endif %}">
             <a href="/view-products?user={{ username }}">
                 <i class="fas fa-boxes"></i> <span>View Products</span>
@@ -21,7 +21,7 @@
         </li>
 
         {% if role == 'admin' %}
-        
+
         <li class="menu-item {% if request.url.path.startswith('/add-product') %}active{% endif %}">
             <a href="/add-product?user={{ username }}">
                 <i class="fas fa-plus-circle"></i> <span>Add Product</span>
@@ -42,7 +42,7 @@
                 <i class="fas fa-history"></i> <span>Sales History</span>
             </a>
         </li>
-        
+
 
         {% elif role == 'customer' %}
         <li class="menu-item {% if request.url.path.startswith('/browse-products') %}active{% endif %}">
@@ -55,16 +55,12 @@
                 <i class="fas fa-list"></i> <span>Order History</span>
             </a>
         </li>
-        <li class="menu-item">
-            <a href="#">
+        <li class="menu-item {% if request.url.path.startswith('/my-cart') %}active{% endif %}">
+            <a href="/my-cart?user={{ username }}">
                 <i class="fas fa-shopping-basket"></i> <span>My Cart</span>
             </a>
         </li>
+
         {% endif %}
     </ul>
 </aside>
-
-
-
-
-        

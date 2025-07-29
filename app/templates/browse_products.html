@@ -123,11 +123,12 @@ table button:hover {
     <td>₹{{ p.price }}</td>
     <td>{{ p.quantity }}</td>
     <td>
-        <form action="/place-order" method="post">
+        <form action="/add-to-cart" method="post">
+        <!-- <form action="/place-order" method="post"> -->
             <input type="hidden" name="user" value="{{ username }}">
             <input type="hidden" name="product_id" value="{{ p.id }}">
             <input type="number" name="quantity" min="1" max="{{ p.quantity }}" required>
-            <button type="submit">Buy</button>
+            <button type="submit">Add to Cart</button>
         </form>
     </td>
 </tr>
