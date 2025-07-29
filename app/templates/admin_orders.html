@@ -82,7 +82,7 @@
         <strong>Status:</strong> {{ order.status }}</p>
     <ul>
         {% for item in order.items %}
-        <li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>
+        {#<li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>#}
         {% endfor %}
     </ul>
     <form action="/update-order-status/{{ order.id }}" method="post">

@@ -32,10 +32,16 @@
         border-radius: 6px;
         border: 1px solid #d1d5db;
         font-size: 0.95rem;
+        margin-bottom: 15px;
     }
 
-    /* Form Button Styles */
-    .ok-button {
+    .form-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .form-buttons button {
         background-color: var(--primary-color);
         color: white;
         border: none;
@@ -43,31 +49,47 @@
         border-radius: 5px;
         cursor: pointer;
         /* margin-right: 10px; */
-        margin-left: 35%;
+        /* margin-left: 35%; */
     }
 
-    .ok-button:hover {
+    .form-buttons button:hover {
         background-color: var(--primary-dark);
+    }
+
+    .form-button1 {
+        margin-left: 10px;
     }
 </style>
 {% endblock %}
+
 {% block content %}
 <div id="editProductForm">
 <h2>Edit Product</h2>
-<form method="post" action="/edit-product/{{ product.id }}">
-    <label>Name:</label><br>
-    <input type="text" name="name" value="{{ product.name }}" required><br><br>
+<form method="post" action="/edit-product/{{ product.id }}?user={{ username }}">
 
-    <label>Description:</label><br>
-    <input type="text" name="desc" value="{{ product.desc }}" required><br><br>
 
-    <label>Quantity:</label><br>
-    <input type="number" name="quantity" value="{{ product.quantity }}" required><br><br>
+        <label>Category:</label>
+        <input type="text" name="category" value="{{ product.category }}" required>
 
-    <label>Price:</label><br>
-    <input type="number" step="0.01" name="price" value="{{ product.price }}" required><br><br>
+        <label>Subcategory:</label>
+        <input type="text" name="subcategory" value="{{ product.subcategory }}" required>
 
-    <button class="ok-button" type="submit">Update Product</button>
+        <label>Brand:</label>
+        <input type="text" name="brand" value="{{ product.brand }}" required>
+
+        <label>Description:</label>
+        <input type="text" name="desc" value="{{ product.desc }}" required>
+
+        <label>Quantity:</label>
+        <input type="number" name="quantity" value="{{ product.quantity }}" required>
+
+        <label>Price:</label>
+        <input type="number" step="0.01" name="price" value="{{ product.price }}" required>
+
+        <div class="form-buttons">
+            <button type="submit" class="form-button1">Save</button>
+            <button type="button" onclick="window.location.href='/view-products?user={{ username }}'" class="form-button1">Cancel</button>
+        </div>
 </form>
 </div>
 {% endblock %}

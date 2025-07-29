@@ -67,26 +67,31 @@
         margin: 4px 0;
     }
 
-.action-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-.action-buttons form {
-    display: inline;
-}
-.action-buttons button {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.4rem 0.8rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-}
-.action-buttons button.delete {
-    background-color: var(--danger-color);
-}
+    .action-buttons {
+        display: flex;
+        /* justify-content: space-between; */
+        margin-top: 1rem;
+        gap: 20px;
+        margin-left: 30px;
+    }
+
+    .action-buttons form {
+        display: inline;
+    }
+
+    .action-buttons button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .action-buttons button.delete {
+        background-color: var(--danger-color);
+    }
 </style>
 {% endblock %}
 
@@ -94,9 +99,10 @@
 <div class="search-bar">
     <form action="/view-products" method="get" style="width: 100%;">
         <i class="fas fa-search"></i>
-            <input type="text" name="search" placeholder="Search products..." value="{{ search }}">
-        </form>
-    </div>
+        <input type="text" name="search" placeholder="Search products..." value="{{ search }}">
+        <input type="hidden" name="user" value="{{ username }}">
+    </form>
+</div>
 
 <br>
 
@@ -108,18 +114,34 @@
         <div class="product-card">
             <p><strong>Product ID:</strong> {{ product.id }}</p>
             <p><strong>Date:</strong> {{ product.date }}</p>
-            <p><strong>Name:</strong> {{ product.name }}</p>
+            <p><strong>Category:</strong> {{ product.category }}</p>
+            <p><strong>Subcategory:</strong> {{ product.subcategory }}</p>
+            <p><strong>Brand:</strong> {{ product.brand }}</p>
             <p><strong>Description:</strong> {{ product.desc }}</p>
-            <p><strong>Quantity:</strong> {{ product.quantity }}</p>
             <p><strong>Price:</strong> ₹{{ product.price }}</p>
+            <p><strong>Availability:</strong>
+                {% if product.quantity > 0 %}
+                In Stock ({{ product.quantity }})
+                {% else %}
+                <span style="color: red;">Currently Unavailable</span>
+                {% endif %}
+            </p>
+            {% if role == "admin" %}
             <div class="action-buttons">
                 <form action="/edit-product/{{ product.id }}" method="get">
+                    <input type="hidden" name="user" value="{{ username }}">
                     <button type="submit">Edit</button>
                 </form>
+                <!-- <form action="/delete-product/{{ product.id }}" method="post">
+                    <button type="submit" class="delete">Delete</button>
+                </form> -->
+
                 <form action="/delete-product/{{ product.id }}" method="post">
+                    <input type="hidden" name="user" value="{{ username }}">
                     <button type="submit" class="delete">Delete</button>
                 </form>
             </div>
+            {% endif %}
         </div>
         {% else %}
         <p>No products found.</p>

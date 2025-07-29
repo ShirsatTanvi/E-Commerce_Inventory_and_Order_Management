@@ -5,12 +5,12 @@
 {% block extra_styles %}
 <style>
 /* Page Background */
-body {
+/* body {
     background-color: #f5f7fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 20px;
-}
+} */
 
 /* Centered Page Heading */
 h2 {
@@ -108,7 +108,7 @@ hr {
     <p><strong>Order ID:</strong> {{ order.id }} | <strong>Status:</strong> {{ order.status }} | <strong>Date:</strong> {{ order.date }}</p>
     <ul>
         {% for item in order.items %}
-        <li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>
+        {#<li>{{ item.product.name }} - Qty: {{ item.quantity }}</li>#}
         {% endfor %}
     </ul>
 </div>

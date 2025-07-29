@@ -49,11 +49,17 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     if not pwd_context.verify(password, user.password):
         return templates.TemplateResponse("login.html", {"request": request, "error": "Incorrect password"})
 
-    return RedirectResponse(url=f"/dashboard?user={user.username}", status_code=303)
+    if user.role == "admin":
+        return RedirectResponse(url=f"/admin-dashboard?user={user.username}", status_code=303)
+    elif user.role == "customer":
+        return RedirectResponse(url=f"/customer-dashboard?user={user.username}", status_code=303)
+    else:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid role"})
 
 @app.post("/logout", name="logout")
 def logout(request: Request):
-    return RedirectResponse(url="/", status_code=302)
+    response = RedirectResponse(url="/", status_code=302)
+    return response
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -61,10 +67,9 @@ def register_page(request: Request):
 
 @app.post("/register", response_class=HTMLResponse)
 def register(request: Request, username: str = Form(...), email: str = Form(...), role: str = Form(...), password: str = Form(...), confirm_password: str = Form(...)):
-
     if password != confirm_password:
         return templates.TemplateResponse("register.html", {"request": request, "error": "Passwords do not match"})
-    
+
     hashed_password = pwd_context.hash(password)
     db: Session = SessionLocal()
     existing_user = db.query(User).filter((User.username == username) | (User.email == email)).first()
@@ -85,68 +90,72 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
 
     return RedirectResponse(url="/login", status_code=303)
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
+@app.get("/admin-dashboard", response_class=HTMLResponse, name="admin_dashboard")
+def admin_dashboard(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    if context["role"] == "admin":
-        total_products = db.query(func.count(Product.id)).scalar()
-        today = date.today()
-        today_orders = db.query(OrderItem).join(Order).filter(Order.date == today).all()
-        todays_sales = sum(item.quantity * item.product.price for item in today_orders)
-        low_stock_items = db.query(Product).filter(Product.quantity < 5).all()
+    total_products = db.query(func.count(Product.id)).scalar()
 
-        recent_activities = []
-        latest_orders = db.query(Order).order_by(desc(Order.date)).limit(5).all()
-        for order in latest_orders:
-            for item in order.items:
-                recent_activities.append(f"Sold {item.quantity} units of {item.product.subcategory} on {order.date.strftime('%d %B %Y')}")
-        recent_products = db.query(Product).order_by(desc(Product.date)).limit(5).all()
-        for product in recent_products:
-            recent_activities.append(f"Added new product: {product.subcategory}")
+    today = date.today()
+    today_orders = db.query(OrderItem).join(Order).filter(Order.date == today).all()
+    todays_sales = sum(item.quantity * item.product.price for item in today_orders)
+    low_stock_items = db.query(Product).filter(Product.quantity < 5).all()
 
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
-            "username": context["username"],
-            "role": context["role"],
-            "total_products": total_products,
-            "todays_sales": todays_sales,
-            "low_stock_count": len(low_stock_items),
-            "recent_activities": recent_activities[:5]
-        })
+    recent_activities = []
+    latest_orders = db.query(Order).order_by(desc(Order.date)).limit(5).all()
+    for order in latest_orders:
+        for item in order.items:
+            recent_activities.append(f"Sold {item.quantity} units of {item.product.name} on {order.date.strftime('%d %B %Y')}")
 
-    elif context["role"] == "customer":
-        user_obj = db.query(User).filter(User.username == user).first()
-        today = date.today()
-        today_orders = db.query(OrderItem).join(Order).filter(Order.user_id == user_obj.id, Order.date == today).all()
-        todays_total = sum(item.quantity * item.product.price for item in today_orders)
-        todays_products = [item.product.subcategory for item in today_orders]
+    recent_products = db.query(Product).order_by(desc(Product.date)).limit(5).all()
+    for product in recent_products:
+        recent_activities.append(f"Added new product: {product.name}")
 
-        all_orders = db.query(OrderItem).join(Order).filter(Order.user_id == user_obj.id).all()
-        total_quantity = sum(item.quantity for item in all_orders)
-        total_products = len({item.product_id for item in all_orders})
+    return templates.TemplateResponse("admin_dashboard.html", {
+        "request": request,
+        "username": context["username"],
+        "role": context["role"],
+        "total_products": total_products,
+        "todays_sales": todays_sales,
+        "low_stock_count": len(low_stock_items),
+        "recent_activities": recent_activities[:5]
+    })
 
-        recent_purchases = []
-        latest_orders = db.query(Order).filter(Order.user_id == user_obj.id).order_by(desc(Order.date)).limit(5).all()
-        for order in latest_orders:
-            for item in order.items:
-                recent_purchases.append(f"You purchased {item.quantity} x {item.product.subcategory} on {order.date.strftime('%d %B %Y')} (Status: {order.status})")
+@app.get("/customer-dashboard", response_class=HTMLResponse)
+def customer_dashboard(request: Request, user: str, db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    user_obj = db.query(User).filter(User.username == user).first()
 
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
-            "username": context["username"],
-            "role": context["role"],
-            "total_quantity": total_quantity,
-            "total_products": total_products,
-            "todays_total": todays_total,
-            "todays_products": todays_products,
-            "recent_purchases": recent_purchases
-        })
+    today = date.today()
+    today_orders = db.query(OrderItem).join(Order).filter(Order.user_id == user_obj.id, Order.date == today).all()
+    todays_total = sum(item.quantity * item.product.price for item in today_orders)
+    todays_products = [item.product.name for item in today_orders]
+
+    all_orders = db.query(OrderItem).join(Order).filter(Order.user_id == user_obj.id).all()
+    total_quantity = sum(item.quantity for item in all_orders)
+    total_products = len({item.product_id for item in all_orders})
+
+    recent_purchases = []
+    latest_orders = db.query(Order).filter(Order.user_id == user_obj.id).order_by(desc(Order.date)).limit(5).all()
+    for order in latest_orders:
+        for item in order.items:
+            recent_purchases.append(f"You purchased {item.quantity} x {item.product.name} on {order.date.strftime('%d %B %Y')} (Status: {order.status})")
+
+    return templates.TemplateResponse("customer_dashboard.html", {
+        "request": request,
+        "username": context["username"],
+        "role": context["role"],
+        "total_quantity": total_quantity,
+        "total_products": total_products,
+        "todays_total": todays_total,
+        "todays_products": todays_products,
+        "recent_purchases": recent_purchases
+    })
 
 
 @app.get("/view-products")
 def view_products(request: Request, search: str = "", user: str = Query(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    products = db.query(Product).filter(Product.desc.contains(search)).all() if search else db.query(Product).all()
+    products = db.query(models.Product).filter(models.Product.name.contains(search)).all() if search else db.query(models.Product).all()
     return templates.TemplateResponse("view_products.html", {
         "request": request,
         "products": products,
@@ -162,47 +171,21 @@ def edit_product_form(product_id: int, request: Request, user: str = Query(...),
     return templates.TemplateResponse("edit_product.html", {"request": request, "product": product, "username": context["username"], "role": context["role"]})
 
 @app.post("/edit-product/{product_id}")
-def update_product(
-    product_id: int,
-    user: str = Query(...),  # ✅ Fix: Get user from query param
-    category: str = Form(...),
-    subcategory: str = Form(...),
-    brand: str = Form(...),
-    desc: str = Form(...),
-    quantity: int = Form(...),
-    price: float = Form(...),
-    db: Session = Depends(get_db)
-):
+def update_product(product_id: int, name: str = Form(...), desc: str = Form(...), quantity: int = Form(...), price: float = Form(...), db: Session = Depends(get_db)):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    product.category = category
-    product.subcategory = subcategory
-    product.brand = brand
+    product.name = name
     product.desc = desc
     product.quantity = quantity
     product.price = price
     db.commit()
-    # return RedirectResponse("/view-products", status_code=303)
-    return RedirectResponse(f"/view-products?user={user}", status_code=303)
-
-# @app.post("/delete-product/{product_id}")
-# def delete_product(product_id: int, db: Session = Depends(get_db)):
-#     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-#     db.delete(product)
-#     db.commit()
-#     return RedirectResponse("/view-products", status_code=303)
+    return RedirectResponse("/view-products", status_code=303)
 
 @app.post("/delete-product/{product_id}")
-def delete_product(
-    product_id: int,
-    user: str = Form(...),  # ✅ Get the user from the form
-    db: Session = Depends(get_db)
-):
+def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if product:
-        db.delete(product)
-        db.commit()
-    return RedirectResponse(f"/view-products?user={user}", status_code=303)
-
+    db.delete(product)
+    db.commit()
+    return RedirectResponse("/view-products", status_code=303)
 
 @app.get("/add-product", response_class=HTMLResponse)
 def add_product(request: Request, user: str, db: Session = Depends(get_db)):
@@ -210,33 +193,20 @@ def add_product(request: Request, user: str, db: Session = Depends(get_db)):
     return templates.TemplateResponse("add_product.html", {"request": request, "username": context["username"], "role": context["role"]})
 
 @app.post("/add-product", response_class=HTMLResponse)
-def save_product(
-    request: Request,
-    user: str = Form(...),
-    category: str = Form(...),
-    subcategory: str = Form(...),
-    brand: str = Form(...),
-    productDesc: str = Form(...),
-    quantity: int = Form(...),
-    price: float = Form(...)
-):
+def save_product(request: Request, user: str = Form(...), productName: str = Form(...), productDesc: str = Form(...), quantity: int = Form(...), price: float = Form(...)):
     db: Session = SessionLocal()
     try:
-        new_product = Product(category=category, subcategory=subcategory, brand=brand, desc=productDesc, quantity=quantity, price=price)
+        new_product = Product(name=productName, desc=productDesc, quantity=quantity, price=price)
         db.add(new_product)
         db.commit()
         db.refresh(new_product)
         message = "Product added successfully!"
         context = get_user_context(user, db)
-        return templates.TemplateResponse("add_product.html", {
-            "request": request, "username": context["username"], "role": context["role"], "success": message
-        })
+        return templates.TemplateResponse("add_product.html", {"request": request, "username": context["username"], "role": context["role"], "success": message})
     except Exception as e:
         db.rollback()
         context = get_user_context(user, db)
-        return templates.TemplateResponse("add_product.html", {
-            "request": request, "username": context["username"], "role": context["role"], "error": str(e)
-        })
+        return templates.TemplateResponse("add_product.html", {"request": request, "username": context["username"], "role": context["role"], "error": str(e)})
     finally:
         db.close()
 
@@ -302,5 +272,3 @@ def order_history(request: Request, user: str = Query(...), db: Session = Depend
 
     orders = db.query(Order).filter(Order.user_id == user_obj.id).all()
     return templates.TemplateResponse("order_history.html", {"request": request, "orders": orders, "username": context["username"], "role": context["role"]})
-
-

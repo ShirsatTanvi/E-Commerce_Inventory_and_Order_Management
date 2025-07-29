@@ -49,41 +49,39 @@
         background-color: var(--primary-dark);
     }
 </style>
+
 {% endblock %}
 
 {% block content %}
-
-<!-- Add Product Form -->
 <div id="addProductForm">
-    <!-- <h2><u>Add Product</u></h2>
-<br> -->
-
-    <form id="productForm" method="post" action="/add-product">
+    <form method="post" action="/add-product">
         <input type="hidden" name="user" value="{{ username }}">
-
         <div>
-            <label for="productName">Product Name:</label>
-            <input type="text" id="productName" name="productName" required>
+    <label for="category">Category:</label>
+            <input type="text" id="category" name="category" required>
         </div>
-
         <div>
-            <label for="productDesc">Product Description:</label>
+    <label for="subcategory">Subcategory:</label>
+            <input type="text" id="subcategory" name="subcategory" required>
+        </div>
+        <div>
+            <label for="brand">Brand:</label>
+            <input type="text" id="brand" name="brand" required>
+        </div>
+        <div>
+            <label for="productDesc">Description:</label>
             <textarea id="productDesc" name="productDesc" required></textarea>
         </div>
-
         <div>
-            <label for="quantity">Quantity:</label>
+    <label for="quantity">Quantity:</label>
             <input type="number" id="quantity" name="quantity" required>
         </div>
-
         <div>
             <label for="price">Price:</label>
-            <input type="number" id="price" name="price" step="0.01" required>
+            <input type="number" step="0.01" id="price" name="price" required>
         </div>
-
-        <button type="submit" class="ok-button">Save</button>
-        <button type="button" class="ok-button" onclick="cancelAddProduct()">Cancel</button>
-
+    <button type="submit" class="ok-button">Save</button>
+    <button type="reset" class="ok-button">Cancel</button>
         {% if success %}
         <p style="color: green; font-weight: bold; margin-top: 10px;">{{ success }}</p>
         {% endif %}

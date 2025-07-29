@@ -21,7 +21,9 @@ class User(Base):
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
+    category = Column(String(50), nullable=False)
+    subcategory = Column(String(50), nullable=False)
+    brand = Column(String(50), nullable=False)
     desc = Column(String(255), nullable=False)
     quantity = Column(Integer, default=0)
     price = Column(Float, nullable=False)
