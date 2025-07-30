@@ -3,115 +3,15 @@
 {% block title %}My Cart{% endblock %}
 
 {% block extra_styles %}
-<style>
-    h2 {
-        text-align: center;
-        color: var(--primary-color);
-        margin-top: 1rem;
-        font-size: 2rem;
-    }
-
-    table {
-        width: 90%;
-        margin: 2rem auto;
-        border-collapse: collapse;
-        background-color: var(--light-color);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    th, td {
-        padding: 1rem;
-        text-align: center;
-    }
-
-    th {
-        background-color: var(--primary-color);
-        color: white;
-        font-weight: bold;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-    }
-
-    tr:nth-child(even) {
-        background-color: #f3f4f6;
-    }
-
-    td {
-        color: var(--dark-color);
-        font-size: 0.95rem;
-    }
-
-    td button {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 5px;
-        font-weight: bold;
-        background-color: var(--danger-color);
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-
-    td button:hover {
-        background-color: #c53030;
-    }
-
-    .empty-cart {
-        text-align: center;
-        color: var(--gray-color);
-        font-size: 1.1rem;
-        margin-top: 2rem;
-    }
-
-    /* =========================== */
-    /* New Styles for Totals Block */
-    /* =========================== */
-    .cart-summary {
-        width: 90%;
-        margin: 2rem auto;
-        text-align: right;
-        background-color: var(--light-color);
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-    }
-
-    .cart-summary p {
-        font-size: 1rem;
-        color: var(--dark-color);
-        margin: 0.3rem 0;
-    }
-
-    .cart-summary hr {
-        margin: 1rem 0;
-        border: none;
-        border-top: 1px solid #d1d5db;
-    }
-
-    .checkout-button {
-        margin-top: 1.5rem;
-        padding: 12px 24px;
-        font-size: 1rem;
-        background-color: var(--secondary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    .checkout-button:hover {
-        background-color: #059669;
-        /* darker shade of secondary */
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/tables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/buttons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/bill.css') }}">
 {% endblock %}
 
 {% block content %}
-<h2>My Cart</h2>
+
+<h2 style="text-align: center; font-size: 30px;">My Cart</h2>
+
 {% if cart_items %}
 <table>
     <tr>
@@ -134,7 +34,7 @@
         <td>
             <form method="post" action="/remove-from-cart/{{ item.id }}">
                 <input type="hidden" name="user" value="{{ username }}">
-                <button type="submit">Remove</button>
+                <button class="remove-button" type="submit">Remove</button>
             </form>
         </td>
     </tr>
@@ -147,19 +47,11 @@
     <p><strong>Shipping:</strong> ₹{{ shipping }}</p>
     <hr>
     <p><strong>Total Amount:</strong> ₹{{ total_amount }}</p>
-
-    <!-- <form method="post" action="/checkout">
-        <input type="hidden" name="user" value="{{ username }}">
-        <button type="submit" class="checkout-button">
-            Proceed to Buy
-        </button>
-    </form> -->
     
     <form method="post" action="/bill">
         <input type="hidden" name="user" value="{{ username }}">
         <button type="submit" class="checkout-button">Proceed to Buy</button>
     </form>
-
 </div>
 
 {% else %}

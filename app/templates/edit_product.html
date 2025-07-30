@@ -1,95 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Edit Product{% endblock %}
 {% block extra_styles %}
-<style>
-    /* Add Product Form Styles */
-    #editProductForm {
-        margin-top: 10px;
-        margin-bottom: 20px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-        background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    #editProductForm div {
-        margin-bottom: 10px;
-    }
-
-    #editProductForm label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-    }
-
-    #editProductForm input,
-    #editProductForm textarea {
-        width: 100%;
-        padding: 0.5rem;
-        border-radius: 6px;
-        border: 1px solid #d1d5db;
-        font-size: 0.95rem;
-        margin-bottom: 15px;
-    }
-
-    .form-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-    }
-
-    .form-buttons button {
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        /* margin-right: 10px; */
-        /* margin-left: 35%; */
-    }
-
-    .form-buttons button:hover {
-        background-color: var(--primary-dark);
-    }
-
-    .form-button1 {
-        margin-left: 10px;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/buttons.css') }}">
 {% endblock %}
 
 {% block content %}
-<div id="editProductForm">
-<h2>Edit Product</h2>
-<form method="post" action="/edit-product/{{ product.id }}?user={{ username }}">
-
-
-        <label>Category:</label>
+<div id="addProductForm">
+    <form method="post" action="/edit-product/{{ product.id }}?user={{ username }}">
+        <div>
+            <label>Category:</label>
         <input type="text" name="category" value="{{ product.category }}" required>
+        </div>
+        <div>      
 
         <label>Subcategory:</label>
         <input type="text" name="subcategory" value="{{ product.subcategory }}" required>
+        </div>
+
+        <div>
 
         <label>Brand:</label>
         <input type="text" name="brand" value="{{ product.brand }}" required>
-
+</div>
+<div>
         <label>Description:</label>
         <input type="text" name="desc" value="{{ product.desc }}" required>
-
+</div><div>
         <label>Quantity:</label>
         <input type="number" name="quantity" value="{{ product.quantity }}" required>
-
+</div>
+<div>
         <label>Price:</label>
         <input type="number" step="0.01" name="price" value="{{ product.price }}" required>
-
-        <div class="form-buttons">
-            <button type="submit" class="form-button1">Save</button>
-            <button type="button" onclick="window.location.href='/view-products?user={{ username }}'" class="form-button1">Cancel</button>
         </div>
-</form>
+        <div class="action-buttons">
+            <button type="submit" class="add-button">Save</button>
+            <button type="button" onclick="window.location.href='/view-products?user={{ username }}'" class="remove-button">Cancel</button>
+        </div>
+    </form>
 </div>
 {% endblock %}

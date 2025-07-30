@@ -4,7 +4,6 @@ from datetime import date
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.orm import relationship
 
-
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)

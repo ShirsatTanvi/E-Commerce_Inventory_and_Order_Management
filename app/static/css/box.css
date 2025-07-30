@@ -1,0 +1,76 @@
+/* Order Box Styling */
+    .order-box {
+        background-color: #ffffff;
+        border-left: 5px solid #007BFF;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin: 20px auto;
+        max-width: 700px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Order Details Paragraph */
+    .order-box p {
+        font-size: 16px;
+        color: #444;
+        margin-bottom: 10px;
+    }
+
+    /* Order Item List */
+    .order-box ul {
+        list-style-type: disc;
+        padding-left: 25px;
+        margin-bottom: 15px;
+    }
+
+    .order-box li {
+        font-size: 15px;
+        color: #666;
+        padding: 3px 0;
+    }
+
+    /* Form for Status Update */
+    .order-box form {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Dropdown Styling */
+    .order-box select {
+        padding: 8px 12px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .order-box select:focus {
+        border-color: #007BFF;
+    }
+
+    /* Button Styling */
+    .order-box button {
+        background-color: #28a745;
+        color: white;
+        padding: 8px 16px;
+        font-size: 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s ease;
+    }
+
+    .order-box button:hover {
+        background-color: #218838;
+    }
+
+    hr {
+        border: 0;
+        border-top: 1px solid #e0e0e0;
+        margin: 30px 0;
+    }

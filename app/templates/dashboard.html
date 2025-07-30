@@ -2,14 +2,14 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_styles %}
-<link rel="stylesheet" href="{{ url_for('static', path='dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
 <div id="dashboardContent">
     <div class="page-header">
         <div class="header-content">
-            <h2>Welcome, {{ username }}!</h2>
+            <h2 style="font-size: 30px; margin-bottom: 15px;">Welcome, {{ username }}!</h2>
         </div>
     </div>
 

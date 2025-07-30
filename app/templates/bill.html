@@ -3,132 +3,13 @@
 {% block title %}Order Bill{% endblock %}
 
 {% block extra_styles %}
-<style>
-    h2 {
-        text-align: center;
-        color: var(--primary-color);
-        margin-top: 1.5rem;
-        font-size: 2.2rem;
-        font-weight: bold;
-    }
-
-    table {
-        width: 90%;
-        margin: 2rem auto;
-        border-collapse: collapse;
-        background-color: var(--light-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    th, td {
-        padding: 1rem;
-        text-align: center;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    th {
-        background-color: var(--primary-color);
-        color: white;
-        text-transform: uppercase;
-        font-size: 0.95rem;
-        letter-spacing: 0.5px;
-    }
-
-    tr:last-child td {
-        border-bottom: none;
-    }
-
-    td {
-        font-size: 1rem;
-        color: var(--dark-color);
-    }
-
-    .cart-summary {
-        width: 90%;
-        margin: 2rem auto;
-        background-color: var(--light-color);
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-        border: 1px solid #e5e7eb;
-        font-size: 1rem;
-        color: var(--dark-color);
-    }
-
-    .cart-summary p {
-        margin: 0.5rem 0;
-        font-size: 1.05rem;
-    }
-
-    .cart-summary hr {
-        margin: 1.5rem 0;
-        border: none;
-        border-top: 1px solid #d1d5db;
-    }
-
-    .checkout-button {
-        margin-top: 1rem;
-        padding: 12px 28px;
-        font-size: 1rem;
-        font-weight: 600;
-        background-color: var(--secondary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-        display: inline-block;
-        text-align: center;
-        text-decoration: none;
-    }
-
-    .checkout-button:hover {
-        background-color: #059669;
-    }
-
-    form {
-        display: inline;
-    }
-
-    .checkout-button.danger {
-        background-color: var(--danger-color);
-    }
-
-    .checkout-button.danger:hover {
-        background-color: #c53030;
-    }
-
-    .download-btn-container {
-        text-align: right;
-        margin: 1rem 10%;
-    }
-
-    .download-btn-container a {
-        text-decoration: none;
-    }
-
-    @media print {
-        .checkout-button,
-        .download-btn-container,
-        form {
-            display: none;
-        }
-        table, .cart-summary {
-            box-shadow: none;
-            border: none;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/tables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/buttons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/bill.css') }}">
 {% endblock %}
 
-
 {% block content %}
-<h2 style="text-align: center;">Order Summary</h2>
-
-<!-- <div style="text-align: right; margin: 1rem 10%;"><a href="#" onclick="window.print()" class="checkout-button">Download Bill</a></div> -->
-
+<h2 style="text-align: center; font-size: 30px;">Order Summary</h2>
 <table>
     <tr>
         <th>Product</th>
@@ -161,10 +42,9 @@
         <input type="hidden" name="user" value="{{ username }}">
         <button type="submit" class="checkout-button">Confirm Buy</button>
     </form>
-    <br>
     <form method="get" action="/my-cart">
         <input type="hidden" name="user" value="{{ username }}">
-        <button type="submit" class="checkout-button" style="background-color: var(--danger-color);">Back to Cart</button>
+        <button type="submit" class="remove-button">Back to Cart</button>
     </form>
 </div>
 {% endblock %}

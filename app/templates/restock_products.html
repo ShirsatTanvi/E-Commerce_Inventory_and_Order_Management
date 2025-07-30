@@ -3,82 +3,13 @@
 {% block title %}Restock Products{% endblock %}
 
 {% block extra_styles %}
-<style>
-    /* Restock Products Table Styling */
-    table {
-        width: 90%;
-        margin: 2rem auto;
-        border-collapse: collapse;
-        font-family: Arial, sans-serif;
-        box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
-        background-color: #fff;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    thead {
-        background-color: #f5f5f5;
-        font-weight: bold;
-    }
-
-    thead th {
-        padding: 12px;
-        text-align: left;
-        font-size: 14px;
-        border-bottom: 1px solid #ddd;
-    }
-
-    tbody td {
-        padding: 10px 12px;
-        font-size: 14px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    tbody tr:hover {
-        background-color: #f9f9f9;
-    }
-
-    form {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    input[type="number"] {
-        padding: 6px;
-        font-size: 14px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        width: 80px;
-    }
-
-    button[type="submit"] {
-        padding: 6px 12px;
-        font-size: 14px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    button[type="submit"]:hover {
-        background-color: #0056b3;
-    }
-
-    h2 {
-        color: #333;
-        font-size: 1.8rem;
-    }
-
-    p {
-        font-size: 16px;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/tables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/buttons.css') }}">
 {% endblock %}
 
 {% block content %}
-<h2 style="text-align:center; margin-top: 1rem;">Restock Products</h2>
+
+<h2 style="text-align: center; font-size: 30px;">All Products</h2>
 
 {% if message %}
 <p style="text-align:center; color: green;">{{ message }}</p>
@@ -108,7 +39,7 @@
                     <input type="hidden" name="user" value="{{ username }}">
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="number" name="added_quantity" min="1" required style="width: 80px;">
-                    <button type="submit">Add</button>
+                    <button class="add-button" type="submit">Add</button>
                 </form>
             </td>
         </tr>

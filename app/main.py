@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Form, Depends, Query
 from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_, cast, String
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import User, Product, Order, OrderItem, CartItem
@@ -9,18 +9,22 @@ import models
 from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
 from datetime import date
-from io import BytesIO
-from reportlab.pdfgen import canvas  # Optional for PDF
 
+# Binding with database
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Connects Templates
 templates = Jinja2Templates(directory="templates")
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Mount the static files directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# session 
 def get_db():
     db = SessionLocal()
     try:
@@ -32,13 +36,16 @@ def get_user_context(username: str, db: Session):
     user_obj = db.query(User).filter(User.username == username).first()
     return {"username": user_obj.username, "role": user_obj.role}
 
+
+# main route
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {})
 
+# login route
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {})
 
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -46,33 +53,35 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     user = db.query(User).filter(User.username == username).first()
 
     if user is None:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Username does not exist"})
+        return templates.TemplateResponse(request, "login.html", {"error": "Username does not exist"})
 
     if not pwd_context.verify(password, user.password):
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Incorrect password"})
+        return templates.TemplateResponse(request,"login.html", {"error": "Incorrect password"})
 
     return RedirectResponse(url=f"/dashboard?user={user.username}", status_code=303)
 
+# logout route
 @app.post("/logout", name="logout")
 def logout(request: Request):
     return RedirectResponse(url="/", status_code=302)
 
+# registration route
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse(request, "register.html", {})
 
 @app.post("/register", response_class=HTMLResponse)
 def register(request: Request, username: str = Form(...), email: str = Form(...), role: str = Form(...), password: str = Form(...), confirm_password: str = Form(...)):
 
     if password != confirm_password:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Passwords do not match"})
+        return templates.TemplateResponse(request, "register.html", {"error": "Passwords do not match"})
     
     hashed_password = pwd_context.hash(password)
     db: Session = SessionLocal()
     existing_user = db.query(User).filter((User.username == username) | (User.email == email)).first()
 
     if existing_user:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "User or email already exists"})
+        return templates.TemplateResponse(request, "register.html", {"error": "User or email already exists"})
 
     try:
         new_user = User(username=username, email=email, role=role, password=hashed_password)
@@ -81,15 +90,18 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         db.refresh(new_user)
     except Exception as e:
         db.rollback()
-        return templates.TemplateResponse("register.html", {"request": request, "error": str(e)})
+        return templates.TemplateResponse(request, "register.html", {"error": str(e)})
     finally:
         db.close()
 
     return RedirectResponse(url="/login", status_code=303)
 
+# Dashboard route -> role based access
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
+    
+    # Return if Admin login
     if context["role"] == "admin":
         total_products = db.query(func.count(Product.id)).scalar()
         today = date.today()
@@ -106,8 +118,7 @@ def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
         for product in recent_products:
             recent_activities.append(f"Added new product: {product.subcategory}")
 
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
+        return templates.TemplateResponse(request,"dashboard.html", {
             "username": context["username"],
             "role": context["role"],
             "total_products": total_products,
@@ -115,7 +126,8 @@ def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
             "low_stock_count": len(low_stock_items),
             "recent_activities": recent_activities[:5]
         })
-
+    
+    # Returns if Customer Login
     elif context["role"] == "customer":
         user_obj = db.query(User).filter(User.username == user).first()
         today = date.today()
@@ -133,8 +145,7 @@ def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
             for item in order.items:
                 recent_purchases.append(f"You purchased {item.quantity} x {item.product.subcategory} on {order.date.strftime('%d %B %Y')} (Status: {order.status})")
 
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "dashboard.html", {
             "username": context["username"],
             "role": context["role"],
             "total_quantity": total_quantity,
@@ -144,11 +155,28 @@ def dashboard(request: Request, user: str, db: Session = Depends(get_db)):
             "recent_purchases": recent_purchases
         })
 
-
+# View products route -> role based access
 @app.get("/view-products")
-def view_products(request: Request, search: str = "", user: str = Query(...), message: str= "", db: Session = Depends(get_db)):
+def view_products(request: Request, search: str = "", user: str = Query(...), message: str = "", db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    products = db.query(Product).filter(Product.desc.contains(search)).all() if search else db.query(Product).all()
+
+    if search:
+        search_pattern = f"%{search}%"
+        products = db.query(Product).filter(
+            or_(
+                cast(Product.id, String).ilike(search_pattern),
+                Product.category.ilike(search_pattern),
+                Product.subcategory.ilike(search_pattern),
+                Product.brand.ilike(search_pattern),
+                Product.desc.ilike(search_pattern),
+                cast(Product.price, String).ilike(search_pattern),
+                cast(Product.quantity, String).ilike(search_pattern),
+                cast(Product.date, String).ilike(search_pattern)
+            )
+        ).all()
+    else:
+        products = db.query(Product).all()
+
     return templates.TemplateResponse("view_products.html", {
         "request": request,
         "products": products,
@@ -158,11 +186,12 @@ def view_products(request: Request, search: str = "", user: str = Query(...), me
         "message": message
     })
 
+# Edit product -> Role: Admin 
 @app.get("/edit-product/{product_id}")
 def edit_product_form(product_id: int, request: Request, user: str = Query(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    return templates.TemplateResponse("edit_product.html", {"request": request, "product": product, "username": context["username"], "role": context["role"]})
+    return templates.TemplateResponse(request, "edit_product.html", {"product": product, "username": context["username"], "role": context["role"]})
 
 @app.post("/edit-product/{product_id}")
 def update_product(
@@ -184,28 +213,9 @@ def update_product(
     product.quantity = quantity
     product.price = price
     db.commit()
-    # return RedirectResponse("/view-products", status_code=303)
     return RedirectResponse(f"/view-products?user={user}", status_code=303)
 
-# @app.post("/delete-product/{product_id}")
-# def delete_product(product_id: int, db: Session = Depends(get_db)):
-#     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-#     db.delete(product)
-#     db.commit()
-#     return RedirectResponse("/view-products", status_code=303)
-
-# @app.post("/delete-product/{product_id}")
-# def delete_product(
-#     product_id: int,
-#     user: str = Form(...),  # ✅ Get the user from the form
-#     db: Session = Depends(get_db)
-# ):
-#     product = db.query(models.Product).filter(models.Product.id == product_id).first()
-#     if product:
-#         db.delete(product)
-#         db.commit()
-#     return RedirectResponse(f"/view-products?user={user}", status_code=303)
-
+# Delete Product -> Role: Admin
 @app.post("/delete-product/{product_id}")
 def delete_product(
     request: Request,   
@@ -215,8 +225,7 @@ def delete_product(
 ):
     product = db.query(Product).filter(Product.id == product_id ).first()
     if not product:
-        return templates.TemplateResponse("message.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "message.html", {
             "message": "Product not found."
         })
 
@@ -244,16 +253,15 @@ def delete_product(
                 db.delete(order)
 
     # Finally, delete the product
-
     db.delete(product)
     db.commit()
     return RedirectResponse(f"/view-products?user={user}", status_code=303)
 
-
+# Add new product -> Role: Admin
 @app.get("/add-product", response_class=HTMLResponse)
 def add_product(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    return templates.TemplateResponse("add_product.html", {"request": request, "username": context["username"], "role": context["role"]})
+    return templates.TemplateResponse(request, "add_product.html", {"username": context["username"], "role": context["role"]})
 
 @app.post("/add-product", response_class=HTMLResponse)
 def save_product(
@@ -274,32 +282,22 @@ def save_product(
         db.refresh(new_product)
         message = "Product added successfully!"
         context = get_user_context(user, db)
-        return templates.TemplateResponse("add_product.html", {
-            "request": request, "username": context["username"], "role": context["role"], "success": message
+        return templates.TemplateResponse(request, "add_product.html", { "username": context["username"], "role": context["role"], "success": message
         })
     except Exception as e:
         db.rollback()
         context = get_user_context(user, db)
-        return templates.TemplateResponse("add_product.html", {
-            "request": request, "username": context["username"], "role": context["role"], "error": str(e)
+        return templates.TemplateResponse(request, "add_product.html", { "username": context["username"], "role": context["role"], "error": str(e)
         })
     finally:
         db.close()
 
-
-# @app.get("/admin-orders", response_class=HTMLResponse)
-# def view_all_orders(request: Request, user: str, db: Session = Depends(get_db)):
-#     context = get_user_context(user, db)
-#     orders = db.query(Order).all()
-#     return templates.TemplateResponse("admin_orders.html", {"request": request, "orders": orders, "username": context["username"], "role": context["role"]})
-
+# Restock Product -> Role: Admin
 @app.get("/restock-products", response_class=HTMLResponse)
 def restock_products_page(request: Request, user: str = Query(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     products = db.query(Product).all()
-    # products = db.query(Product).filter(Product.is_active == 1).all()
-    return templates.TemplateResponse("restock_products.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "restock_products.html", {
         "username": context["username"],
         "role": context["role"],
         "products": products
@@ -323,60 +321,25 @@ def restock_product(
         message = "Product not found"
 
     products = db.query(Product).all()
-    # products = db.query(Product).filter(Product.is_active == 1).all()
-    return templates.TemplateResponse("restock_products.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "restock_products.html", {
         "username": context["username"],
         "role": context["role"],
         "products": products,
         "message": message
     })
 
+# Manage Orders -> Role: Admin
 @app.get("/admin-orders", response_class=HTMLResponse)
 def view_all_orders(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     orders = db.query(Order).filter(Order.status != "Delivered").all()
-    return templates.TemplateResponse("admin_orders.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "admin_orders.html", {
         "orders": orders,
         "username": context["username"],
         "role": context["role"]
     })
 
-@app.get("/sales-history", response_class=HTMLResponse)
-def sales_history(request: Request, user: str, db: Session = Depends(get_db)):
-    context = get_user_context(user, db)
-    orders = db.query(Order).filter(Order.status == "Delivered").all()
-    return templates.TemplateResponse("sales_history.html", {
-        "request": request,
-        "orders": orders,
-        "username": context["username"],
-        "role": context["role"]
-    })
-
-
-# @app.get("/admin-orders", response_class=HTMLResponse)
-# def view_all_orders(request: Request, db: Session = Depends(get_db)):
-#     orders = db.query(Order).filter(Order.status != "Delivered").all()
-#     return templates.TemplateResponse("admin_order.html", {"request": request, "orders": orders})
-
-# @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
-# def update_order_status(order_id: int, status: str = Form(...), db: Session = Depends(get_db)):
-#     order = db.query(Order).filter(Order.id == order_id).first()
-#     order.status = status
-#     db.commit()
-#     return RedirectResponse("/admin-orders?user=admin", status_code=303)
-
-# @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
-# def update_order_status(order_id: int, status: str = Form(...), db: Session = Depends(get_db)):
-#     order = db.query(Order).filter(Order.id == order_id).first()
-#     if not order:
-#         return {"error": "Order not found"}
-#     order.status = status
-#     db.commit()
-    
-#     return RedirectResponse(url="/admin-orders", status_code=303)
-
+# Update status route -> Admin
 @app.post("/update-order-status/{order_id}", response_class=HTMLResponse)
 def update_order_status(
     order_id: int,
@@ -391,46 +354,25 @@ def update_order_status(
     db.commit()
     return RedirectResponse(f"/admin-orders?user={user}", status_code=303)
 
-# @app.get("/customer-dashboard", response_class=HTMLResponse)
-# def customer_dashboard(request: Request, user: str, db: Session = Depends(get_db)):
-#     context = get_user_context(user, db)
-#     return templates.TemplateResponse("customer_dashboard.html", {"request": request, "username": context["username"], "role": context["role"]})
-
+# Sales history route -> Role: Admin 
+@app.get("/sales-history", response_class=HTMLResponse)
+def sales_history(request: Request, user: str, db: Session = Depends(get_db)):
+    context = get_user_context(user, db)
+    orders = db.query(Order).filter(Order.status == "Delivered").all()
+    return templates.TemplateResponse(request, "sales_history.html", {
+        "orders": orders,
+        "username": context["username"],
+        "role": context["role"]
+    })
+ 
+# Browse Product Route -> Role: Customer
 @app.get("/browse-products", response_class=HTMLResponse)
 def browse_products(request: Request, user: str, db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     products = db.query(Product).all()
-    # products = db.query(Product).filter(Product.is_active == 1).all()
-    return templates.TemplateResponse("browse_products.html", {"request": request, "products": products, "username": context["username"], "role": context["role"]})
+    return templates.TemplateResponse(request, "browse_products.html", { "products": products, "username": context["username"], "role": context["role"]})
 
-@app.post("/place-order", response_class=HTMLResponse)
-def place_order(request: Request, user: str = Form(...), product_id: int = Form(...), quantity: int = Form(...), db: Session = Depends(get_db)):
-    user_obj = db.query(User).filter(User.username == user).first()
-    product = db.query(Product).filter(Product.id == product_id).first()
-
-    context = get_user_context(user, db)
-
-    if not user_obj:
-        return templates.TemplateResponse("browse_products.html", {"request": request, "username": context["username"], "role": context["role"], "error": f"User '{user}' not found"})
-
-    if not product:
-        return templates.TemplateResponse("browse_products.html", {"request": request, "username": context["username"], "role": context["role"], "error": f"Product ID {product_id} not found"})
-
-    if product.quantity < quantity:
-        return templates.TemplateResponse("browse_products.html", {"request": request, "username": context["username"], "role": context["role"], "error": f"Only {product.quantity} units available"})
-
-    order = Order(user_id=user_obj.id)
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-
-    order_item = OrderItem(order_id=order.id, product_id=product.id, quantity=quantity)
-    db.add(order_item)
-    product.quantity -= quantity
-    db.commit()
-
-    return templates.TemplateResponse("browse_products.html", {"request": request, "username": context["username"], "role": context["role"], "success": "Order placed successfully!"})
-
+# Add to cart route -> Role: Customer
 @app.post("/add-to-cart", response_class=HTMLResponse)
 def add_to_cart(user: str = Form(...), product_id: int = Form(...), quantity: int = Form(...), db: Session = Depends(get_db)):
     user_obj = db.query(User).filter(User.username == user).first()
@@ -450,7 +392,7 @@ def add_to_cart(user: str = Form(...), product_id: int = Form(...), quantity: in
     db.commit()
     return RedirectResponse(f"/browse-products?user={user}", status_code=303)
 
-
+# My cart view route -> Role: Customer
 @app.get("/my-cart", response_class=HTMLResponse)
 def my_cart(request: Request, user: str = Query(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
@@ -462,8 +404,7 @@ def my_cart(request: Request, user: str = Query(...), db: Session = Depends(get_
     shipping = 50.0 if cart_items else 0.0
     total_amount = round(subtotal + gst + shipping, 2)
 
-    return templates.TemplateResponse("my_cart.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "my_cart.html", {
         "cart_items": cart_items,
         "username": context["username"],
         "role": context["role"],
@@ -473,6 +414,7 @@ def my_cart(request: Request, user: str = Query(...), db: Session = Depends(get_
         "total_amount": total_amount
     })
 
+# Remove from cart route -> Role: Customer
 @app.post("/remove-from-cart/{cart_id}")
 def remove_from_cart(cart_id: int, user: str = Form(...), db: Session = Depends(get_db)):
     item = db.query(CartItem).filter(CartItem.id == cart_id).first()
@@ -481,15 +423,16 @@ def remove_from_cart(cart_id: int, user: str = Form(...), db: Session = Depends(
         db.commit()
     return RedirectResponse(f"/my-cart?user={user}", status_code=303)
 
+# Proceed to buy route -> Role: Customer
 @app.post("/checkout", response_class=HTMLResponse)
 def checkout(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
-    return templates.TemplateResponse("message.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "message.html", {
         "message": "Proceeding to checkout... (To be implemented)",
         "redirect_url": f"/my-cart?user={user}"
     })
 
+# View Bill Route -> Role: Customer
 @app.post("/bill", response_class=HTMLResponse)
 def show_bill(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
@@ -501,8 +444,7 @@ def show_bill(request: Request, user: str = Form(...), db: Session = Depends(get
     shipping = 50.0 if cart_items else 0.0
     total_amount = round(subtotal + gst + shipping, 2)
 
-    return templates.TemplateResponse("bill.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "bill.html", {
         "username": context["username"],
         "role": context["role"],
         "cart_items": cart_items,
@@ -512,13 +454,13 @@ def show_bill(request: Request, user: str = Form(...), db: Session = Depends(get
         "total_amount": total_amount
     })
 
+# confirm buy route -> Role: Customer
 @app.post("/confirm-buy", response_class=HTMLResponse)
 def confirm_buy(request: Request, user: str = Form(...), db: Session = Depends(get_db)):
     # Get user
     user_obj = db.query(User).filter(User.username == user).first()
     if not user_obj:
-        return templates.TemplateResponse("message.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "message.html", {
             "message": "User not found.",
             "redirect_url": "/login"
         })
@@ -526,8 +468,7 @@ def confirm_buy(request: Request, user: str = Form(...), db: Session = Depends(g
     # Get cart items
     cart_items = db.query(CartItem).filter(CartItem.user_id == user_obj.id).all()
     if not cart_items:
-        return templates.TemplateResponse("message.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "message.html", {
             "message": "Your cart is empty.",
             "redirect_url": f"/my-cart?user={user}"
         })
@@ -552,26 +493,17 @@ def confirm_buy(request: Request, user: str = Form(...), db: Session = Depends(g
 
     return RedirectResponse(f"/my-cart?user={user}", status_code=303)
 
-@app.get("/download-bill")
-def download_bill(user: str = Query(...), db: Session = Depends(get_db)):
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer)
-    p.drawString(100, 800, f"Bill for user: {user}")
-    # You can loop and draw items too
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": "attachment; filename=bill.pdf"})
-
+# Order history shown route -> Role: Customer
 @app.get("/order-history", response_class=HTMLResponse)
 def order_history(request: Request, user: str = Query(...), db: Session = Depends(get_db)):
     context = get_user_context(user, db)
     user_obj = db.query(User).filter(User.username == user).first()
 
     if not user_obj:
-        return templates.TemplateResponse("message.html", {"request": request, "message": f"User '{user}' not found!", "redirect_url": "/login"})
+        return templates.TemplateResponse(request, "message.html", {"message": f"User '{user}' not found!", "redirect_url": "/login"})
+
 
     orders = db.query(Order).filter(Order.user_id == user_obj.id).all()
-    return templates.TemplateResponse("order_history.html", {"request": request, "orders": orders, "username": context["username"], "role": context["role"]})
+    return templates.TemplateResponse(request, "order_history.html", { "orders": orders, "username": context["username"], "role": context["role"]})
 
 

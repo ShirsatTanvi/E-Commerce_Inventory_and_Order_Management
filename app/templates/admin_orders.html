@@ -2,80 +2,13 @@
 {% block title %}Admin Orders{% endblock %}
 
 {% block extra_styles %}
-<style>
-    /* Order Container */
-    div.order-box {
-        background-color: #fdfdfd;
-        border: 1px solid #ddd;
-        border-left: 6px solid #007BFF;
-        border-radius: 12px;
-        padding: 16px 24px;
-        margin: 20px 0;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Heading */
-    h2 {
-        text-align: center;
-        color: #343a40;
-        margin-bottom: 30px;
-        font-size: 28px;
-    }
-
-    /* Order Summary */
-    .order-box p {
-        font-size: 16px;
-        color: #333;
-        margin-bottom: 10px;
-    }
-
-    /* Items List */
-    .order-box ul {
-        padding-left: 20px;
-        margin-bottom: 15px;
-    }
-
-    .order-box li {
-        color: #555;
-        font-size: 15px;
-        padding: 3px 0;
-    }
-
-    /* Form and Select Styling */
-    .order-box form {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .order-box select {
-        padding: 6px 12px;
-        font-size: 14px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        outline: none;
-    }
-
-    .order-box button {
-        background-color: #28a745;
-        color: white;
-        padding: 6px 14px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background-color 0.2s ease-in-out;
-    }
-
-    .order-box button:hover {
-        background-color: #218838;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/box.css') }}">
 {% endblock %}
 
 {% block content %}
 
-<h2>All Orders</h2>
+<h2 style="text-align: center; font-size: 30px;">All Orders</h2>
+
 {% for order in orders %}
 <div class="order-box">
     <p><strong>Order ID:</strong> {{ order.id }} | <strong>User:</strong> {{ order.user.username }} |

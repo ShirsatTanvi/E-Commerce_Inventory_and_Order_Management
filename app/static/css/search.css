@@ -1,0 +1,24 @@
+.search-bar {
+        flex-grow: 1;
+        max-width: 1025px;
+        margin: 0 auto;
+        position: relative;
+        display: flex;
+        justify-content: left;
+    }
+
+    .search-bar input {
+        width: 100%;
+        padding: 0.5rem 1rem 0.5rem 2.5rem;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        font-size: 0.9rem;
+    }
+
+    .search-bar i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-color);
+    }

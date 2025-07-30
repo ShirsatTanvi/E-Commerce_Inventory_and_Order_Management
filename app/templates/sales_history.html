@@ -2,57 +2,11 @@
 {% block title %}Sales History{% endblock %}
 
 {% block extra_styles %}
-<style>
-    h2 {
-        text-align: center;
-        color: #343a40;
-        margin: 2rem 0 1rem;
-        font-size: 28px;
-    }
-
-    table {
-        width: 90%;
-        margin: 0 auto 2rem;
-        border-collapse: collapse;
-        background-color: #fff;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    th, td {
-        padding: 12px 16px;
-        text-align: center;
-        border-bottom: 1px solid #e2e2e2;
-    }
-
-    th {
-        background-color: #007BFF;
-        color: white;
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    td {
-        font-size: 15px;
-        color: #444;
-    }
-
-    ul {
-        list-style-type: disc;
-        padding-left: 20px;
-        margin: 0;
-        text-align: left;
-    }
-
-    tr:hover {
-        background-color: #f1f1f1;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='/css/tables.css') }}">
 {% endblock %}
 
 {% block content %}
-<h2>Sales History</h2>
+<h2 style="text-align: center; font-size: 30px;">Sales History</h2>
 
 <table>
     <thead>

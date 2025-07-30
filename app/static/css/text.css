@@ -1,0 +1,31 @@
+h2 {
+    text-align: center;
+    color: black;
+    font-size: 30px;
+    margin-top: none;
+    margin-bottom: 20px;
+}
+
+p {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+ul {
+        list-style-type: disc;
+        padding-left: 20px;
+        margin: 0;
+        text-align: left;
+    }
+
+/* Alerts */
+p[style="color:red"] {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+p[style="color:green"] {
+    color: #28a745;
+    font-weight: 600;
+}
