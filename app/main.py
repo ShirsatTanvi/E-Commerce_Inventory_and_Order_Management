@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
 from datetime import date
 
+
 # Binding with database
 Base.metadata.create_all(bind=engine)
 
@@ -196,7 +197,7 @@ def edit_product_form(product_id: int, request: Request, user: str = Query(...),
 @app.post("/edit-product/{product_id}")
 def update_product(
     product_id: int,
-    user: str = Query(...),  # ✅ Fix: Get user from query param
+    user: str = Query(...),
     category: str = Form(...),
     subcategory: str = Form(...),
     brand: str = Form(...),
@@ -245,9 +246,8 @@ def delete_product(
     for item in order_items:
         db.delete(item)
 
-        # Optional: Check if the order now has 0 items, then delete the order too
         remaining_items = db.query(OrderItem).filter(OrderItem.order_id == item.order_id).count()
-        if remaining_items == 1:  # current item is the last one
+        if remaining_items == 1:
             order = db.query(Order).filter(Order.id == item.order_id).first()
             if order:
                 db.delete(order)
@@ -345,7 +345,7 @@ def update_order_status(
     order_id: int,
     status: str = Form(...),
     user: str = Form(...),  # Accept user from the form
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db) 
 ):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
@@ -505,5 +505,3 @@ def order_history(request: Request, user: str = Query(...), db: Session = Depend
 
     orders = db.query(Order).filter(Order.user_id == user_obj.id).all()
     return templates.TemplateResponse(request, "order_history.html", { "orders": orders, "username": context["username"], "role": context["role"]})
-
-

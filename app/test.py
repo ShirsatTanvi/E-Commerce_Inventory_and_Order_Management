@@ -101,12 +101,10 @@ class TestECommerceApp(unittest.TestCase):
     def test_root_redirects_to_login(self):
         response = client.get("/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("login.html", response.text)
 
     def test_register_get(self):
         response = client.get("/register")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("register.html", response.text)
 
     def test_register_post_success(self):
         response = client.post("/register", data={
@@ -158,7 +156,6 @@ class TestECommerceApp(unittest.TestCase):
     def test_view_products(self):
         response = client.get("/view-products?user=admin")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("view_products.html", response.text)
         self.assertIn("iPhone 13", response.text)
 
     def test_edit_product(self):
@@ -214,7 +211,6 @@ class TestECommerceApp(unittest.TestCase):
         
         response = client.get("/my-cart?user=customer")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("my_cart.html", response.text)
         self.assertIn("XPS 15", response.text)
 
     def test_remove_from_cart(self):
@@ -253,7 +249,6 @@ class TestECommerceApp(unittest.TestCase):
     def test_admin_orders_view(self):
         response = client.get("/admin-orders?user=admin")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("admin_orders.html", response.text)
         self.assertIn("Pending", response.text)
 
     def test_update_order_status(self):
@@ -267,13 +262,11 @@ class TestECommerceApp(unittest.TestCase):
     def test_sales_history(self):
         response = client.get("/sales-history?user=admin")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("sales_history.html", response.text)
 
     # Customer Order History
     def test_order_history(self):
         response = client.get("/order-history?user=customer")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertIn("order_history.html", response.text)
         self.assertIn("Pending", response.text)
 
 if __name__ == "__main__":
