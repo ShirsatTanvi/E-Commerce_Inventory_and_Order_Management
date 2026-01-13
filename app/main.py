@@ -491,7 +491,8 @@ def confirm_buy(request: Request, user: str = Form(...), db: Session = Depends(g
 
     db.commit()
 
-    return RedirectResponse(f"/my-cart?user={user}", status_code=303)
+    # return RedirectResponse(f"/my-cart?user={user}", status_code=303)
+    return RedirectResponse(f"/order-history?user={user}", status_code=303)
 
 # Order history shown route -> Role: Customer
 @app.get("/order-history", response_class=HTMLResponse)
@@ -502,6 +503,5 @@ def order_history(request: Request, user: str = Query(...), db: Session = Depend
     if not user_obj:
         return templates.TemplateResponse(request, "message.html", {"message": f"User '{user}' not found!", "redirect_url": "/login"})
 
-
-    orders = db.query(Order).filter(Order.user_id == user_obj.id).all()
+    orders = db.query(Order).filter(Order.user_id == user_obj.id).order_by(Order.id.desc()).all()
     return templates.TemplateResponse(request, "order_history.html", { "orders": orders, "username": context["username"], "role": context["role"]})
